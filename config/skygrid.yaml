@@ -1,0 +1,45 @@
+# Single source of truth for all components.
+# Any value can be overridden with an environment variable, e.g.
+#   SKYGRID_COORDINATOR_LOCK_TIMEOUT_MS=50
+
+grid:
+  width: 100              # cells along x
+  height: 100             # cells along y
+  region_cols: 5          # -> each region is 20 cells wide
+  region_rows: 4          # -> each region is 25 cells tall (20 regions total)
+  slot_duration_ms: 1000  # one time slot = 1 second
+
+metadata:
+  dsn: postgres://skygrid:skygrid@localhost:5440/skygrid
+
+shards:
+  - id: 0
+    dsn: postgres://skygrid:skygrid@localhost:5450/skygrid
+  - id: 1
+    dsn: postgres://skygrid:skygrid@localhost:5451/skygrid
+  - id: 2
+    dsn: postgres://skygrid:skygrid@localhost:5452/skygrid
+  - id: 3
+    dsn: postgres://skygrid:skygrid@localhost:5453/skygrid
+
+coordinator:
+  id: coord-1
+  listen_addr: ":8080"
+  lock_timeout_ms: 100       # give up waiting on a cell held by an in-flight txn
+  max_attempts: 5            # total tries per request, including the first
+  backoff_base_ms: 10
+  backoff_max_ms: 200
+  routing_refresh_ms: 1000   # how often to check routing_version
+  pool_size_per_shard: 20
+
+recovery:
+  scan_interval_ms: 2000
+  prepared_age_threshold_ms: 5000   # only touch prepared txns older than this
+
+simulator:
+  coordinator_url: http://localhost:8080
+  drones: 500
+  request_rate_per_sec: 200
+  cross_region_ratio: 0.25   # fraction of requests whose path crosses a region boundary
+  hot_spot: false            # if true, most destinations cluster in one region
+  duration_sec: 60

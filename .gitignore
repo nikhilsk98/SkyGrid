@@ -1,0 +1,15 @@
+.env
+results/
+*.csv
+!experiments/**/*.example.csv
+
+# Terraform
+infra/terraform/.terraform/
+infra/terraform/*.tfstate
+infra/terraform/*.tfstate.*
+infra/terraform/*.tfvars
+
+# Editors / OS
+.idea/
+.vscode/
+.DS_Store

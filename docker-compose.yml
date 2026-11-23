@@ -1,0 +1,72 @@
+name: skygrid
+
+# Shared settings for every Postgres container.
+x-postgres-common: &pg-common
+  image: postgres:16-alpine
+  environment:
+    POSTGRES_USER: ${POSTGRES_USER:-skygrid}
+    POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-skygrid}
+    POSTGRES_DB: skygrid
+  command:
+    - postgres
+    - -c
+    - max_prepared_transactions=100   # REQUIRED for 2PC (default is 0 = disabled)
+    - -c
+    - max_connections=200
+  healthcheck:
+    test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d skygrid"]
+    interval: 5s
+    timeout: 3s
+    retries: 10
+  # No restart policy on purpose: failure experiments kill containers and
+  # restart them manually, so Docker should not bring them back on its own.
+
+services:
+  # Shared metadata DB: routing table, 2PC decision log, drones, flight history.
+  metadata:
+    <<: *pg-common
+    container_name: skygrid-metadata
+    ports: ["5440:5432"]
+    volumes:
+      - ./migrations/metadata:/docker-entrypoint-initdb.d:ro
+      - metadata-data:/var/lib/postgresql/data
+
+  # Reservation shards. Each owns the regions assigned to it in routing_table.
+  shard-0:
+    <<: *pg-common
+    container_name: skygrid-shard-0
+    ports: ["5450:5432"]
+    volumes:
+      - ./migrations/shard:/docker-entrypoint-initdb.d:ro
+      - shard-0-data:/var/lib/postgresql/data
+
+  shard-1:
+    <<: *pg-common
+    container_name: skygrid-shard-1
+    ports: ["5451:5432"]
+    volumes:
+      - ./migrations/shard:/docker-entrypoint-initdb.d:ro
+      - shard-1-data:/var/lib/postgresql/data
+
+  shard-2:
+    <<: *pg-common
+    container_name: skygrid-shard-2
+    ports: ["5452:5432"]
+    volumes:
+      - ./migrations/shard:/docker-entrypoint-initdb.d:ro
+      - shard-2-data:/var/lib/postgresql/data
+
+  shard-3:
+    <<: *pg-common
+    container_name: skygrid-shard-3
+    ports: ["5453:5432"]
+    volumes:
+      - ./migrations/shard:/docker-entrypoint-initdb.d:ro
+      - shard-3-data:/var/lib/postgresql/data
+
+volumes:
+  metadata-data:
+  shard-0-data:
+  shard-1-data:
+  shard-2-data:
+  shard-3-data:
